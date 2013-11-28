@@ -106,9 +106,9 @@ nuspec :main_nuspec do |nuspec|
   nuspec.id = 'CommonWell-Token'
   nuspec.version = NUGET_VERSION
   nuspec.authors = 'CommonWell Health Alliance'
-  nuspec.description = 'CommonWell-Token, a security token generator for the CommonWell Health Alliance service'
+  nuspec.description = 'CommonWell-Token, a .NET security token library for the CommonWell Health Alliance service'
   nuspec.title = 'CommonWell-Token'
-  nuspec.projectUrl = 'http://github.com/commonwell/CommonWell.Token'
+  nuspec.projectUrl = 'http://github.com/CommonWell/CommonWell-Token'
   nuspec.language = "en-US"
   nuspec.licenseUrl = "http://www.apache.org/licenses/LICENSE-2.0"
   nuspec.requireLicenseAcceptance = "false"
