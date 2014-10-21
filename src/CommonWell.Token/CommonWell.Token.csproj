@@ -66,6 +66,7 @@
     <Compile Include="RoleClaim.cs" />
     <Compile Include="SAMLTokenContract.cs" />
     <Compile Include="TokenFactory.cs" />
+    <Compile Include="CustomXspaClaimTypes.cs" />
     <Compile Include="XspaClaimTypes.cs" />
   </ItemGroup>
   <ItemGroup>

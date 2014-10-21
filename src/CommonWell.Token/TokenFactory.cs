@@ -133,6 +133,35 @@ namespace CommonWell.Token
             return tokenDescriptor;
         }
 
+        private SecurityTokenDescriptor BuildJWTDescriptorUsingCustomProfile(TokenContract claims)
+        {
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[]
+                {
+                    new Claim(CustomXspaClaimTypes.SubjectIdentifier, claims.SubjectId),
+                    new Claim(CustomXspaClaimTypes.SubjectRole, claims.SubjectRole.Code),
+                    new Claim(CustomXspaClaimTypes.SubjectOrganization, claims.Organization),
+                    new Claim(CustomXspaClaimTypes.OrganizationIdentifier, claims.OrganizationId.ToString()),
+                    new Claim(CustomXspaClaimTypes.PurposeOfUse, claims.PurposeOfUse.Code),
+                    new Claim(CustomXspaClaimTypes.PayLoadHash, claims.PayLoadHash)
+                }),
+                TokenIssuerName = claims.SigningCertificate.SubjectName.Name,
+                AppliesToAddress = CustomXspaClaimTypes.AppliesToAddress,
+                Lifetime = new Lifetime(DateTime.Now.ToUniversalTime(), claims.Expiration),
+            };
+            if (!String.IsNullOrEmpty(claims.Npi))
+            {
+                tokenDescriptor.Subject.AddClaim(new Claim(CustomXspaClaimTypes.NationalProviderIdentifier, claims.Npi));
+            }
+            if (claims.HomeCommunityId != null)
+            {
+                tokenDescriptor.Subject.AddClaim(new Claim(CustomXspaClaimTypes.HomeCommunityId,
+                    claims.HomeCommunityId.ToString()));
+            }
+            return tokenDescriptor;
+        }
+
         private JwtSecurityToken BuildJwtToken(JWTTokenContract contract)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -144,6 +173,9 @@ namespace CommonWell.Token
                     break;
                 case NamingProtocol.Xspa:
                     tokenDescriptor = BuildJWTDescriptorUsingXspaProfile(contract);
+                    break;
+                case NamingProtocol.Custom:
+                    tokenDescriptor = BuildJWTDescriptorUsingCustomProfile(contract);
                     break;
                 default:
                     throw new ArgumentException("Missing naming option", "contract");

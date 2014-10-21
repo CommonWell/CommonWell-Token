@@ -31,5 +31,6 @@ namespace CommonWell.Token
         public string Subject;
         public string SubjectId;
         public RoleClaim SubjectRole;
+        public string PayLoadHash;
     }
 }

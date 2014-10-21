@@ -24,7 +24,8 @@ namespace CommonWell.Token
     public enum NamingProtocol
     {
         IUA,
-        Xspa
+        Xspa,
+        Custom
     }
 
     public class JWTTokenContract : TokenContract

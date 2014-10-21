@@ -327,5 +327,64 @@ namespace CommonWell.Token.Tests
             Assert.IsNotEmpty(tokenString);
             Assert.AreEqual(tokenString.Count(i => i.Equals('.')), 2, "Encoded token string delimiter count failure");
         }
+
+        [Test]
+        public void Can_Generate_JWT_Token_With_Custom_Claims()
+        {
+            // Arrange
+            var contract = Utilities.SetCustomJWTContract(_testInstance.X509Certificate);
+            contract.NameOption = NamingProtocol.Custom;
+
+            // Act
+            var factory = new TokenFactory(_testInstance.IdentityConfigurationForTest);
+            var token = factory.GenerateToken<JwtSecurityToken>(contract);
+
+            // Assert
+            Assert.IsNotNull(token, "Token came back empty");
+            Assert.IsTrue(token.Audience.Equals(TestClaims.Audience));
+            Assert.IsTrue(token.Issuer.Equals(contract.Issuer), "Issuer incorrect");
+            Assert.IsTrue(token.Header.Any(h => h.Key.Equals("typ") && h.Value.Equals("JWT")), "Invalid type");
+            Assert.IsTrue(token.Header.Any(h => h.Key.Equals("alg") && h.Value.Equals("RS256")), "Invalid algorithm");
+            Assert.IsTrue(
+                token.Claims.Any(
+                    c => c.Type.Equals(XspaClaimTypes.SubjectIdentifier) && c.Value.Equals(TestClaims.SubjectClaim)),
+                "Subject Identifier incorrect");
+            Assert.IsTrue(
+                token.Claims.Any(
+                    c =>
+                        c.Type.Equals(CustomXspaClaimTypes.OrganizationIdentifier) &&
+                        c.Value.Equals(TestClaims.OrganizationIdClaim.ToString())),
+                "Organization Identifier incorrect");
+            Assert.IsTrue(
+                token.Claims.Any(
+                    c =>
+                        c.Type.Equals(CustomXspaClaimTypes.SubjectOrganization) &&
+                        c.Value.Equals(TestClaims.OrganizationClaim)), "Subject Organization incorrect");
+            Assert.IsTrue(
+                token.Claims.Any(
+                    c => c.Type.Equals(CustomXspaClaimTypes.SubjectRole) && c.Value.Equals(TestClaims.SubjectRoleClaim.Code)),
+                "Subject Role incorrect");
+            Assert.IsTrue(
+                token.Claims.Any(
+                    c => c.Type.Equals(CustomXspaClaimTypes.PurposeOfUse) && c.Value.Equals(TestClaims.PurposeOfUseClaim.Code)),
+                "Purpose of Use incorrect");
+            Assert.IsTrue(
+                token.Claims.Any(
+                    c => c.Type.Equals(CustomXspaClaimTypes.NationalProviderIdentifier) && c.Value.Equals(TestClaims.NPIClaim)),
+                "Npi incorrect");
+            Assert.IsTrue(
+             token.Claims.Any(
+                 c => c.Type.Equals(CustomXspaClaimTypes.PayLoadHash) && c.Value.Equals(TestClaims.PayLoadHash)),
+             "Npi incorrect");
+            Assert.IsNotNull(token.Expiration, "Expiration is null");
+            Assert.AreEqual(_testInstance.ValidExpiration.ToShortDateString(),
+                Utilities.UnixTimeStampToDateTime(token.Expiration.Value).ToShortDateString());
+            Assert.AreEqual(_testInstance.ValidExpiration.ToShortTimeString(),
+                Utilities.UnixTimeStampToDateTime(token.Expiration.Value).ToShortTimeString());
+            Assert.AreNotEqual(_testInstance.ValidExpiration, Utilities.UnixTimeStampToDateTime(token.Expiration.Value));
+            // offset by skew
+        }
+
+        
     }
 }
