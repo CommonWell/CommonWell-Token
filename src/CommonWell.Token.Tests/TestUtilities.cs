@@ -17,8 +17,10 @@ using System;
 using System.IdentityModel.Configuration;
 using System.IdentityModel.Selectors;
 using System.IdentityModel.Tokens;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.ServiceModel.Security;
+using System.Text;
 
 namespace CommonWell.Token.Tests
 {
@@ -33,6 +35,16 @@ namespace CommonWell.Token.Tests
         internal static PurposeOfUseClaim PurposeOfUseClaim = new PurposeOfUseClaim("TREATMENT", "5678");
         internal static DateTime TokenExpiration = DateTime.Now.AddDays(3);
         internal static string Audience = "urn:commonwellalliance.org";
+        internal static string PayLoadHash = getHash("test");
+
+        private static string  getHash(string value)
+        {
+            using (var sha = SHA256.Create())
+            {
+                var computedHash = sha.ComputeHash(Encoding.Unicode.GetBytes(value));
+               return  Convert.ToBase64String(computedHash);
+            }
+        }
     }
 
     internal static class Utilities
@@ -81,59 +93,80 @@ namespace CommonWell.Token.Tests
                 SigningCertificate = certificate
             };
         }
+
+        internal static JWTTokenContract SetCustomJWTContract(X509Certificate2 certificate)
+        {
+           return new JWTTokenContract
+            {
+                Issuer = (certificate == null) ? "null" : certificate.SubjectName.Name,
+                NameOption = NamingProtocol.Xspa,
+                Organization = TestClaims.OrganizationClaim,
+                OrganizationId = TestClaims.OrganizationIdClaim,
+                Npi = TestClaims.NPIClaim,
+                Subject = TestClaims.SubjectClaim,
+                SubjectId = TestClaims.SubjectClaim,
+                SubjectRole = TestClaims.SubjectRoleClaim,
+                PurposeOfUse = TestClaims.PurposeOfUseClaim,
+                Expiration = TestClaims.TokenExpiration,
+                SigningCertificate = certificate,
+                PayLoadHash = TestClaims.PayLoadHash
+            };          
+        }
     }
 
     internal sealed class InitializedFixture
-    {
-        private static volatile InitializedFixture _instance;
-        private static readonly object SyncRoot = new object();
-        internal IdentityConfiguration IdentityConfigurationForTest;
-        internal DateTime InvalidExpiration = DateTime.Now.AddDays(-3);
-        internal DateTime ValidExpiration = DateTime.Now.AddDays(3);
-        internal X509Certificate2 X509Certificate;
-
-        private InitializedFixture()
         {
-            var issuerRegistry = new TrustedIssuerNameRegistry();
-            if (X509Certificate == null)
-            {
-                X509Certificate = new X509Certificate2(@"CommonWellTokenTest.pfx", "commonwell");
-            }
-            if (IdentityConfigurationForTest == null)
-            {
-                IdentityConfigurationForTest = new IdentityConfiguration(false)
-                {
-                    AudienceRestriction = {AudienceMode = AudienceUriMode.Never},
-                    CertificateValidationMode = X509CertificateValidationMode.None,
-                    RevocationMode = X509RevocationMode.NoCheck,
-                    MaxClockSkew = new TimeSpan(50000000),
-                    IssuerNameRegistry = issuerRegistry,
-                    ServiceCertificate = X509Certificate
-                };
+            private static volatile InitializedFixture _instance;
+            private static readonly object SyncRoot = new object();
+            internal IdentityConfiguration IdentityConfigurationForTest;
+            internal DateTime InvalidExpiration = DateTime.Now.AddDays(-3);
+            internal DateTime ValidExpiration = DateTime.Now.AddDays(3);
+            internal X509Certificate2 X509Certificate;
 
-                IdentityConfigurationForTest.SecurityTokenHandlers.Clear();
-                IdentityConfigurationForTest.SecurityTokenHandlers.Add(new CustomSaml2SecurityTokenHandler());
-                IdentityConfigurationForTest.SecurityTokenHandlers.Add(new JwtSecurityTokenHandler());
-                IdentityConfigurationForTest.SecurityTokenHandlers.Add(new X509SecurityTokenHandler());
-            }
-        }
-
-        internal static InitializedFixture Instance
-        {
-            get
+            private InitializedFixture()
             {
-                if (_instance == null)
+                var issuerRegistry = new TrustedIssuerNameRegistry();
+                if (X509Certificate == null)
                 {
-                    lock (SyncRoot)
+                    X509Certificate = new X509Certificate2(@"CommonWellTokenTest.pfx", "commonwell");
+                }
+                if (IdentityConfigurationForTest == null)
+                {
+                    IdentityConfigurationForTest = new IdentityConfiguration(false)
                     {
-                        if (_instance == null)
+                        AudienceRestriction = {AudienceMode = AudienceUriMode.Never},
+                        CertificateValidationMode = X509CertificateValidationMode.None,
+                        RevocationMode = X509RevocationMode.NoCheck,
+                        MaxClockSkew = new TimeSpan(50000000),
+                        IssuerNameRegistry = issuerRegistry,
+                        ServiceCertificate = X509Certificate
+                    };
+
+                    IdentityConfigurationForTest.SecurityTokenHandlers.Clear();
+                    IdentityConfigurationForTest.SecurityTokenHandlers.Add(new CustomSaml2SecurityTokenHandler());
+                    IdentityConfigurationForTest.SecurityTokenHandlers.Add(new JwtSecurityTokenHandler());
+                    IdentityConfigurationForTest.SecurityTokenHandlers.Add(new X509SecurityTokenHandler());
+                }
+            }
+
+            internal static InitializedFixture Instance
+            {
+                get
+                {
+                    if (_instance == null)
+                    {
+                        lock (SyncRoot)
                         {
-                            _instance = new InitializedFixture();
+                            if (_instance == null)
+                            {
+                                _instance = new InitializedFixture();
+                            }
                         }
                     }
+                    return _instance;
                 }
-                return _instance;
             }
         }
-    }
+
+
 }
